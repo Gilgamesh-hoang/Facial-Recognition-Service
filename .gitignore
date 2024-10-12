@@ -1,0 +1,9 @@
+# Bỏ qua thư mục môi trường ảo
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Bỏ qua file cấu hình IDE
+.idea/
+*.swp
