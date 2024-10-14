@@ -1,4 +1,6 @@
 # Bỏ qua thư mục môi trường ảo
+/Dataset
+/Models
 venv/
 __pycache__/
 *.pyc
