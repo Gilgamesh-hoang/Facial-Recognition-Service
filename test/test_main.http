@@ -1,0 +1,19 @@
+# Test your FastAPI endpoints
+
+POST http://127.0.0.1:8000/identify-face
+Content-Type: application/json
+{
+  "imageURL": "https://image.nhandan.vn/Uploaded/2024/fdmzftmztpmf/2022_12_04/21-4532.jpg"
+}
+
+###
+
+#GET http://127.0.0.1:8000/
+#Accept: application/json
+
+###
+
+#GET http://127.0.0.1:8000/hello/User
+#Accept: application/json
+
+###

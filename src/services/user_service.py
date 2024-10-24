@@ -24,6 +24,16 @@ def get_user_by_id(user_id: uuid.UUID) -> User:
         return User.from_dict(document)
     else:
         raise ValueError(f"User với ID {user_id} không tồn tại.")
+
+def get_all_users():
+    collection = get_user_collection()
+    documents = collection.find()
+    users = []
+    for document in documents:
+        users.append(User.from_dict(document))
+    return users
+
+
 if __name__ == "__main__":
     # Tạo đối tượng User với UUID và vector nhúng
     user = User(

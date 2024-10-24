@@ -779,3 +779,7 @@ def imresample(img, sz):
 #                 im_data[a1,a2,a3] = img[int(floor(a1*dy)),int(floor(a2*dx)),a3]
 #     return im_data
 
+# main
+if __name__ == "__main__":
+    # Test the face identification function
+    print(os.path.join('src/align', 'det1.npy'))

@@ -1,7 +1,11 @@
+import pickle
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 import cv2
 import numpy as np
 import tensorflow as tf
-import src.align.detect_face as detect_face
+from src.align import detect_face
 import facenet
 import argparse
 
@@ -63,7 +67,12 @@ def main():
                     embedding = sess.run(embeddings, feed_dict=feed_dict)
 
                     # Print the embedding vector
-                    print(f'Embedding vector for face {i + 1}: {embedding}')
+                    # print(f'Embedding vector for face {i + 1}: {embedding}')
+
+                    # write the embedding vector to a file with path
+                    # with open('Dataset/FaceData/embedding3.pkl', 'wb') as f:
+                    #     pickle.dump(embedding, f)
+
 
                     # Display the cropped face
                     cv2.imshow(f'Face {i + 1}', cropped)
