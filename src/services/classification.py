@@ -1,16 +1,76 @@
 import os
 import pickle
+
 import cv2
 import numpy as np
 import tensorflow as tf
 from sklearn.linear_model import SGDClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import LabelEncoder
 
 import src.face_recognition.facenet as facenet
 from src.align import detect_face
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'facemodel.pkl')
+FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
 FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')  # Path to the FaceNet model
+
+
+def load_model_from_file() -> SGDClassifier | None:
+    model = None  # Khai báo model ở phạm vi rộng hơn
+    try:
+        if os.path.exists(FACE_MODEL_PATH):
+            with open(FACE_MODEL_PATH, 'rb') as file:
+                model = pickle.load(file)
+            print('Model loaded successfully')
+        else:
+            model = create_and_save_face_model()  # Gọi hàm tạo model mới nếu file không tồn tại
+
+        return model  # Trả về model sau khi đã gán giá trị
+    except FileNotFoundError:
+        print('Model file not found')
+        return None  # Trả về None nếu có lỗi
+
+def save_model_to_file(model: SGDClassifier):
+    if model is None:
+        print('Model is None')
+        return
+
+    with open(FACE_MODEL_PATH, 'wb') as file:
+        pickle.dump(model, file)
+    print('Model saved successfully')
+
+
+def create_and_save_face_model() -> SGDClassifier:
+    with open(os.path.join(BASE_DIR, 'Dataset', 'FaceData', 'embeddings.pkl'), 'rb') as f:
+        data = pickle.load(f)
+
+    # Chuẩn bị dữ liệu
+    X, y = [], []  # Embeddings và nhãn
+
+    for label, embeddings_list in data.items():
+        for embedding in embeddings_list:
+            X.append(embedding.flatten())
+            y.append(label)
+
+    X = np.array(X, dtype=np.float64)
+    y = np.array(y)
+
+    # Mã hóa nhãn thành dạng số
+    label_encoder = LabelEncoder()
+    y_encoded = label_encoder.fit_transform(y)
+
+    print('Train model with dummy data')
+
+    # Khởi tạo và huấn luyện lần đầu
+    model_classify = SGDClassifier(alpha=0.0001, learning_rate='optimal', loss='log_loss', max_iter=1000, penalty='l2',
+                                   random_state=42)
+    # Chỉ định các lớp cần phân loại
+    classes = np.arange(800)  # 800 lớp từ 0 đến 799
+    model_classify.partial_fit(X, y_encoded, classes=classes)
+
+    print("Model initialized")
+    return model_classify
 
 
 def get_embeddings(imagesData: list[bytes]) -> list[np.ndarray]:
@@ -78,79 +138,9 @@ def get_embeddings(imagesData: list[bytes]) -> list[np.ndarray]:
             return embeddings_list
 
 
-def load_face_model() -> SGDClassifier:
-    if os.path.exists(FACE_MODEL_PATH):
-        with open(FACE_MODEL_PATH, 'rb') as file:
-            model = pickle.load(file)
-            return model
-    else:
-        return None
 
 
-def create_and_save_face_model() -> SGDClassifier:
-    model = SGDClassifier(loss='log_loss', penalty='l2', max_iter=1000, random_state=42, tol=0.01)
-    # model.coef_ = np.zeros((2, 512))
-    # model.intercept_ = np.zeros(2)
-
-    # Initialize with two dummy classes
-    initial_classes = np.array(['user1', 'user2'])
-    model.partial_fit(X=np.zeros((2, 512)), y=initial_classes, classes=np.unique(initial_classes))
-
-    # with open(FACE_MODEL_PATH, 'wb') as file:
-    #     pickle.dump(model, file)
-    return model
-
-
-# def train_classifier(userId: str, imagesData: list[bytes]):
-#     """
-#     Continue training the loaded model with new data.
-#
-#     Parameters:
-#     - userId: The user ID as a label for the embeddings.
-#     - imagesData: List of images (in bytes) to generate embeddings for training.
-#
-#     Returns:
-#     - Status message indicating success or error.
-#     """
-#     # model = load_face_model()
-#     # if not model:
-#     #     return {
-#     #         "status": "error",
-#     #         "message": "Model not found"
-#     #     }
-#     #
-#     embeddings = get_embeddings(imagesData)
-#     # if not embeddings:
-#     #     return {
-#     #         "status": "error",
-#     #         "message": "No faces found in the image"
-#     #     }
-#
-#     model = SGDClassifier(loss='log_loss', penalty='l2', max_iter=5, random_state=42, tol=0.01)
-#
-#     # Initialize with two dummy classes
-#     initial_classes = ['user1', 'user2']
-#     # initial_classes = np.array(['user1', 'user2'])
-#     model.partial_fit(X=np.zeros((2, 512)), y=initial_classes, classes=np.unique(initial_classes))
-#
-#     # Reshape embeddings to 2D array
-#     X_new = np.array(embeddings).reshape(len(embeddings), -1)
-#     y_new = np.array([userId] * len(embeddings)) # Use userId as label for all embeddings
-#
-#
-#     # Load existing classes from the model
-#     # all_user_ids = model.classes_.tolist()
-#
-#     # if userId not in all_user_ids:
-#     # all_user_ids.append(userId)
-#     # print('All user ids:', all_user_ids)
-#     # Perform incremental training using partial_fit
-#     # model.partial_fit(X_new, y_new)
-#     # model.partial_fit(X_new, y_new, classes=np.unique(all_user_ids))
-#
-#
-#     return {"status": "success", "message": "Model updated and saved successfully"}
-def train_classifier(userId: str):
+def train_classifier(userId: str, images: list[np.ndarray]):
     """
     Continue training the loaded model with new data.
 
@@ -167,12 +157,11 @@ def train_classifier(userId: str):
         embedding2 = pickle.load(f2)
 
     embeddings = [embedding1, embedding2]
-    model = SGDClassifier(alpha=0.0001, learning_rate='optimal', loss='log_loss', max_iter=1000, penalty='l2',
-                          random_state=42)
+    model = GaussianNB(var_smoothing=1e-12)
     # Initialize with two dummy classes
     initial_classes = ['user1', 'user2']
     # initial_classes = np.array(['user1', 'user2'])
-    model.partial_fit(X=np.zeros((2, 512)), y=initial_classes, classes=np.unique(initial_classes))
+    model.fit(X=np.zeros((2, 512)), y=initial_classes)
 
     # Reshape embeddings to 2D array
     X_new = np.array(embeddings).reshape(len(embeddings), -1)
@@ -190,27 +179,46 @@ def train_classifier(userId: str):
     # with open(file_path, 'rb') as f:
     #     data = pickle.load(f)
 
-def test1():
-    user1_vector = np.random.rand(512)
-    user2_vector = np.random.rand(512)
 
-    X_train = np.array([user1_vector, user2_vector])
-    y_train = np.array(['user1', 'user2'])
 
-    model = SGDClassifier(loss='log_loss', penalty='l2', max_iter=1000, random_state=42, tol=0.01)
-    model.partial_fit(X_train, y_train, classes=np.unique(y_train))
 
-    user3_vector_1 = np.random.rand(512)
-    user3_vector_2 = np.random.rand(512)
+# def p2():
+#     model, X_test, y_test, label_encoder1 = p1()
+#
+#     with open('E:\Facial-Recognition-Service\Dataset\FaceData\hoang_embeddings.pkl', 'rb') as f:
+#         data = pickle.load(f)
+#
+#         # Chuẩn bị dữ liệu
+#     X_new = []  # Embeddings và nhãn
+#
+#     for label, embeddings_list in data.items():
+#         for embedding in embeddings_list:
+#             X_new.append(embedding.flatten())
+#
+#     X_new = np.array(X_new, dtype=np.float64)
+#     y_new = np.array(['hoang'] * len(X_new))
+#
+#     # Lấy các nhãn hiện tại và thêm nhãn mới
+#     new_labels = np.unique(y_new)
+#     all_labels = np.unique(list(label_encoder1.classes_) + list(new_labels))
+#
+#     # Mã hóa nhãn thành dạng số
+#     label_encoder1 = LabelEncoder()
+#     label_encoder1.fit(all_labels)
+#
+#     # Mã hóa nhãn mới
+#     y_new_train_encoded = label_encoder1.transform(new_labels)
+#     a = label_encoder1.transform(y_new)
+#     print('y_new_train_encoded: ', y_new_train_encoded)
+#     print(f"Learned labels: {len(list(label_encoder1.classes_))}")
+#
+#     # Chia tập dữ liệu thành train và test
+#     X_train_new, X_test_new, y_train_new, y_test_new = train_test_split(X_new, a, test_size=0.2, random_state=42)
+#     # Huấn luyện cải thiện với dữ liệu mới
+#     # model.partial_fit(X_train_new, y_train_new)
+#     model.partial_fit(X_new, a)
+#
 
-    X_new = np.array([user3_vector_1, user3_vector_2])
-    y_new = np.array(['user2', 'user2'])
-
-    model.partial_fit(X_new, y_new)
-
-    # Kiểm tra dự đoán
-    prediction = model.predict(X_new)
-    print("Dự đoán cho user3:", prediction)
 
 if __name__ == '__main__':
     # create_and_save_face_model()
@@ -218,7 +226,4 @@ if __name__ == '__main__':
     # with (open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\21130363.png', 'rb') as f1,
     #       open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\DSC_0024.png', 'rb') as f2):
     #     images_data = [f1.read(), f2.read()]
-
-    # result = train_classifier('user123')
-    # print(result)
-    test1()
+    pass

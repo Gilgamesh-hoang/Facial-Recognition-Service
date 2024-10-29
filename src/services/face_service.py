@@ -1,10 +1,10 @@
 import os
-
+import uuid
 import cv2
 import numpy as np
 import tensorflow as tf
 from user_service import get_all_users
-
+from classification import get_embeddings, train_classifier
 import src.face_recognition.facenet as facenet
 from src.align import detect_face
 
@@ -94,13 +94,29 @@ def compare_embeddings(embedding1, embedding2, threshold= 0.8):
     else:
         return False
 
+def is_valid_uuid(uuid_string):
+    try:
+        val = uuid.UUID(uuid_string)
+        return True
+    except ValueError:
+        return False
 
-def extract_face_vectors(images: list[bytes]):
-    return None
+def train(user_id:str, images: list[bytes])-> str | None:
+    embeddings = get_embeddings(images)
+    train_classifier(user_id, embeddings)
+
+    # target_user have type str, check target_user is uuid
+    # if user_id is None or is_valid_uuid(user_id) == False:
+    #     return None
+    #
+    # return user_id
+
 
 
 if __name__ == "__main__":
     # Test the face identification function
-    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\raw\\hoang\\IMG_20240213_123743.jpg', 'rb') as file:
-        identify_face(file.read())
+    # with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\raw\\hoang\\IMG_20240213_123743.jpg', 'rb') as file:
+    #     identify_face(file.read())
+    print(uuid.UUID('8b36263e-f9d0-4c14-b434-4c861c597d08'))
+    # print(uuid.UUID('8b36263e-f9d0-0'))
 

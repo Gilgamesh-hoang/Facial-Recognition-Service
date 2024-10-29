@@ -15,7 +15,7 @@ import src.face_recognition.facenet as facenet
 from src.align import detect_face
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'facemodel.pkl')
+FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
 FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')  # Path to the FaceNet model
 
 # Global variables to reuse model and session
@@ -23,6 +23,7 @@ MINSIZE = 20  # Minimum size of the face
 THRESHOLD = [0.7, 0.7, 0.8]  # MTCNN thresholds
 FACTOR = 0.709  # Scale factor
 INPUT_IMAGE_SIZE = 160  # Input size for FaceNet
+
 
 def initialize_session():
     """Initialize and return the TensorFlow session and FaceNet model."""
@@ -51,7 +52,6 @@ def process_image(file_path, sess, images_placeholder, embeddings, phase_train_p
     bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
     if bounding_boxes.shape[0] != 1:  # Skip if not exactly one face detected
         return None
-
     # Extract and preprocess the face
     x1, y1, x2, y2 = bounding_boxes[0][:4].astype(int)
     cropped = frame[y1:y2, x1:x2, :]
@@ -102,11 +102,12 @@ def write_embedding(path: str):
                 results[dir_name] = embeddings_list
 
     # Save results to a pickle file
-    with open('E:/Facial-Recognition-Service/Dataset/FaceData/embeddings.pkl', 'wb') as f:
+    with open('E:/Facial-Recognition-Service/Dataset/FaceData/hoang_embeddings.pkl', 'wb') as f:
         pickle.dump(results, f)
 
     print("Embeddings extraction completed successfully.")
     sess.close()
+
 
 def load_embedding(file_path: str):
     """Load and return embeddings from a pickle file."""
@@ -116,10 +117,12 @@ def load_embedding(file_path: str):
     #     print the first 2 rows of data
     i = 0
     for key, value in data.items():
-        print(key, value[:2])
+        value = np.array(value)
+        print(key, len(value))
         i += 1
-        if i == 2:
+        if i == 20:
             break
+
 
 def compare_models():
     with open('E:/Facial-Recognition-Service/Dataset/FaceData/embeddings.pkl', 'rb') as f:
@@ -143,13 +146,15 @@ def compare_models():
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Train SGDClassifier
-    sgd_model = SGDClassifier(loss='log_loss', max_iter=1000, tol=0.001, random_state=42)
+    sgd_model = SGDClassifier(alpha=0.0001, learning_rate='optimal', loss='log_loss', max_iter=1000, penalty='l2',
+                              random_state=42)
+
     sgd_model.fit(X_train, y_train)
     sgd_pred = sgd_model.predict(X_test)
     sgd_accuracy = accuracy_score(y_test, sgd_pred)
 
     # Train Naive Bayes
-    nb_model = GaussianNB()
+    nb_model = GaussianNB(var_smoothing=1e-12)
     nb_model.fit(X_train, y_train)
     nb_pred = nb_model.predict(X_test)
     nb_accuracy = accuracy_score(y_test, nb_pred)
@@ -172,7 +177,67 @@ def compare_models():
     print("Accuracy of SGDClassifier:", sgd_accuracy)
     print("Accuracy of Naive Bayes:", nb_accuracy)
 
+def generate_embedding():
+    IMAGE_PATH = "E:/Facial-Recognition-Service/Dataset/FaceData/processed/hoang/IMG_20240213_123347.jpg"
+
+    with tf.Graph().as_default():
+        gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.6)
+        sess = tf.compat.v1.Session(
+            config=tf.compat.v1.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
+
+        with sess.as_default():
+            # Load the MTCNN model for face detection
+            print('Loading feature extraction model')
+            facenet.load_model(FACENET_MODEL_PATH)
+
+            # Get input and output tensors
+            images_placeholder = tf.compat.v1.get_default_graph().get_tensor_by_name("input:0")
+            embeddings = tf.compat.v1.get_default_graph().get_tensor_by_name("embeddings:0")
+            phase_train_placeholder = tf.compat.v1.get_default_graph().get_tensor_by_name("phase_train:0")
+            embedding_size = embeddings.get_shape()[1]
+
+            # Initialize MTCNN networks
+            pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
+
+            # Read the image
+            frame = cv2.imread(IMAGE_PATH)
+
+            # Detect faces in the image
+            bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+            faces_found = bounding_boxes.shape[0]
+
+            if faces_found > 0:
+                det = bounding_boxes[:, 0:4]
+                bb = np.zeros((faces_found, 4), dtype=np.int32)
+                for i in range(faces_found):
+                    bb[i][0] = det[i][0]
+                    bb[i][1] = det[i][1]
+                    bb[i][2] = det[i][2]
+                    bb[i][3] = det[i][3]
+
+                    # Crop and display each face
+                    cropped = frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :]
+                    resized = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
+                    prewhitened = facenet.prewhiten(resized)
+                    reshaped = prewhitened.reshape(-1, INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE, 3)
+
+                    # Get the embedding vector
+                    feed_dict = {images_placeholder: reshaped, phase_train_placeholder: False}
+                    embedding = sess.run(embeddings, feed_dict=feed_dict)
+
+                    # Print the embedding vector
+                    print(f'Embedding vector for face {i + 1}: {embedding}')
+
+                    # write the embedding vector to a file with path
+                    with open('E:/Facial-Recognition-Service/Dataset/FaceData/embedding2.pkl', 'wb') as f:
+                        pickle.dump(embedding, f)
+
+            else:
+                print('No faces found in the image.')
+
+
 if __name__ == '__main__':
-    # write_embedding('D:\Download\lfw-funneled-Copy\lfw_funneled')
-    # load_embedding('E:/Facial-Recognition-Service/Dataset/FaceData/embeddings.pkl')
-    pass
+    # write_embedding('E:\Facial-Recognition-Service\Dataset\FaceData\processed')
+    # load_embedding('E:\Facial-Recognition-Service\Dataset\FaceData\hoang_embeddings.pkl')
+    # compare_models()
+    generate_embedding()

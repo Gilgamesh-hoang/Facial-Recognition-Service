@@ -76,7 +76,7 @@ def remove_empty_dirs(root_directory):
         file_count = len(filenames)
 
         # Nếu số file nhỏ hơn n, xóa thư mục
-        if file_count < 10 :
+        if file_count < 4 and dirpath != root_directory:
             print(f"Đang xóa thư mục: {dirpath} (có {file_count} file)")
             shutil.rmtree(dirpath)
 
@@ -100,8 +100,7 @@ def keep_max_files(root_directory, max_files=20):
                     print(f"Đang xóa file: {file_path}")
                     os.remove(file_path)  # Xóa file
 
-
-keep_max_files('D:\Download\lfw-funneled-Copy\lfw_funneled', max_files=20)
+keep_max_files('D:\Download\lfw-funneled-Copy2\lfw_funneled', max_files=7)
 def count_files_in_subdirectories(parent_dir):
     file_count_dict = defaultdict(int)
 
@@ -123,7 +122,18 @@ def count_files_in_subdirectories(parent_dir):
     for dir_name, count in sorted_file_counts:
         print(f'{dir_name}: {count} file(s)')
 
-count_files_in_subdirectories('D:\Download\lfw-funneled-Copy\lfw_funneled')
+
+
+def count_folder(parent_dir):
+    count = 0
+    for dir_name in os.listdir(parent_dir):
+        sub_dir_path = os.path.join(parent_dir, dir_name)
+        if os.path.isdir(sub_dir_path):
+            count += 1
+    print(count)
+# count_folder('D:\Download\lfw-funneled-Copy\lfw_funneled')
+# print('=====================')
+count_folder('D:\Download\lfw-funneled-Copy2\lfw_funneled')
 
 # Gọi hàm với đường dẫn thư mục cấp 1
 # parent_directory = 'D:\Download\lfw-funneled-Copy\lfw_funneled'  # Thay đổi đường dẫn này

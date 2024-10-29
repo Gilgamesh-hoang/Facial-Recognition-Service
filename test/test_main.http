@@ -1,19 +1,12 @@
 # Test your FastAPI endpoints
 
-POST http://127.0.0.1:8000/identify-face
+### Test for uploading images for training
+POST http://localhost:8111/train-image
 Content-Type: application/json
+
 {
-  "imageURL": "https://image.nhandan.vn/Uploaded/2024/fdmzftmztpmf/2022_12_04/21-4532.jpg"
+    "user_id": "user123",
+    "imageURLs": [
+        "https://d1hjkbq40fs2x4.cloudfront.net/2017-08-21/files/landscape-photography_1645.jpg"
+    ]
 }
-
-###
-
-#GET http://127.0.0.1:8000/
-#Accept: application/json
-
-###
-
-#GET http://127.0.0.1:8000/hello/User
-#Accept: application/json
-
-###

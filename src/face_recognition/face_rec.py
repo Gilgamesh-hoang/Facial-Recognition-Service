@@ -7,20 +7,16 @@ import numpy as np
 import tensorflow as tf
 from src.align import detect_face
 import facenet
-import argparse
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')  # Path to the FaceNet model
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--path', help='Path to the image file.', required=True)
-    args = parser.parse_args()
 
     # Configuration parameters
     MINSIZE = 20
     THRESHOLD = [0.7, 0.7, 0.8]
     FACTOR = 0.709
     INPUT_IMAGE_SIZE = 160
-    IMAGE_PATH = args.path
-    FACENET_MODEL_PATH = 'Models/20180402-114759.pb'
+    IMAGE_PATH = 'E:\Facial-Recognition-Service\Dataset\FaceData\processed\hoang\IMG_20230126_123256.png'
 
     with tf.Graph().as_default():
         gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.6)
@@ -70,8 +66,8 @@ def main():
                     # print(f'Embedding vector for face {i + 1}: {embedding}')
 
                     # write the embedding vector to a file with path
-                    # with open('Dataset/FaceData/embedding3.pkl', 'wb') as f:
-                    #     pickle.dump(embedding, f)
+                    with open('Dataset/FaceData/embedding3.pkl', 'wb') as f:
+                        pickle.dump(embedding, f)
 
 
                     # Display the cropped face
