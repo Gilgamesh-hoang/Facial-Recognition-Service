@@ -25,10 +25,10 @@ model_service = ModelService()
 async def lifespan(app: FastAPI):
     """Lifespan handler để load model khi ứng dụng khởi động."""
     print("Starting application...")
-    model_service.load_model_from_file()
+    model_service.load_components()
     yield  # Ứng dụng chạy tại đây
     print("Shutting down application...")
-    model_service.save_model_to_file()
+    model_service.save_components()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -85,7 +85,8 @@ async def upload_image_for_training(request: ImagesRequest , service: ModelServi
     except requests.RequestException as e:
         raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
 
-    service.train_classifier(request.user_id, images)
+    response = service.train_classifier(request.user_id, images)
+    return response.to_dict()
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8111))  # Lấy port từ biến môi trường hoặc dùng 8000 mặc định

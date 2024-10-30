@@ -3,10 +3,13 @@ opencv-python~=4.10.0.84
 numpy~=1.26.4
 pymongo~=4.10.1
 fastapi~=0.115.2
-uvicorn
+uvicorn~=0.31.1
 pillow~=10.4.0
 imageio~=2.35.1
 scipy~=1.14.1
 scikit-learn~=1.5.2
 six~=1.16.0
 requests~=2.32.3
+pydantic~=2.9.2
+starlette~=0.39.2
+matplotlib~=3.9.2
