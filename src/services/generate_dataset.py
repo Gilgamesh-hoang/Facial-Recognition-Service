@@ -3,13 +3,8 @@ import pickle
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import GaussianNB
 
 import src.face_recognition.facenet as facenet
 from src.align import detect_face
@@ -123,59 +118,6 @@ def load_embedding(file_path: str):
         if i == 20:
             break
 
-
-def compare_models():
-    with open('E:/Facial-Recognition-Service/Dataset/FaceData/embeddings.pkl', 'rb') as f:
-        data = pickle.load(f)
-
-    # Prepare data
-    X = []  # Store all embedding vectors
-    y = []  # Store corresponding labels (user IDs)
-
-    # Iterate through each user and their corresponding embedding vectors
-    for user_id, vectors in data.items():
-        for vector in vectors:
-            X.append(vector.flatten())  # Flatten the embeddings
-            y.append(user_id)
-
-    # Convert to numpy arrays
-    X = np.array(X)
-    y = np.array(y)
-
-    # Split data into train/test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Train SGDClassifier
-    sgd_model = SGDClassifier(alpha=0.0001, learning_rate='optimal', loss='log_loss', max_iter=1000, penalty='l2',
-                              random_state=42)
-
-    sgd_model.fit(X_train, y_train)
-    sgd_pred = sgd_model.predict(X_test)
-    sgd_accuracy = accuracy_score(y_test, sgd_pred)
-
-    # Train Naive Bayes
-    nb_model = GaussianNB(var_smoothing=1e-12)
-    nb_model.fit(X_train, y_train)
-    nb_pred = nb_model.predict(X_test)
-    nb_accuracy = accuracy_score(y_test, nb_pred)
-
-    # Present experimental results
-    models = ['SGD', 'Naive Bayes']
-    accuracies = [sgd_accuracy, nb_accuracy]
-
-    plt.bar(models, accuracies, color=['blue', 'green'])
-    plt.xlabel('Models')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy of SGD vs. Naive Bayes')
-    plt.ylim(0, 1)
-
-    for i, acc in enumerate(accuracies):
-        plt.text(i, acc + 0.02, f'{acc:.2f}', ha='center', fontsize=12, fontweight='bold')
-
-    plt.show()
-
-    print("Accuracy of SGDClassifier:", sgd_accuracy)
-    print("Accuracy of Naive Bayes:", nb_accuracy)
 
 def generate_embedding():
     IMAGE_PATH = "E:/Facial-Recognition-Service/Dataset/FaceData/processed/hoang/IMG_20240213_123347.jpg"

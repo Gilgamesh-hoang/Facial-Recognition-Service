@@ -1,12 +1,20 @@
 # Test your FastAPI endpoints
 
 ### Test for uploading images for training
-POST http://localhost:8111/train-image
+#POST http://localhost:8111/train-image
+#Content-Type: application/json
+#
+#{
+#    "user_id": "user123",
+#    "imageURLs": [
+#        "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg"
+#    ]
+#}
+
+### Test for identifying face
+POST http://localhost:8111/identify-face
 Content-Type: application/json
 
-{
-    "user_id": "user123",
-    "imageURLs": [
-        "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg"
-    ]
-}
+### Test for uploading images for training
+POST http://localhost:8111/train-image
+Content-Type: application/json

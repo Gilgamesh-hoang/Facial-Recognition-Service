@@ -5,12 +5,12 @@ import numpy as np
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelEncoder
 import logging
-from src.services.model_service import ModelService
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
 LABEL_ENCODE_PATH = os.path.join(BASE_DIR, 'Models', 'label-encode.pkl')
 logger = logging.getLogger(__name__)
+
 
 def load_model_from_file() -> SGDClassifier | None:
     try:
@@ -70,7 +70,7 @@ def create_and_save_face_model() -> SGDClassifier:
     return model_classify
 
 
-def train_model(service: ModelService, user_id: str, embeddings: list[np.ndarray]):
+async def train_model(service, user_id: str, embeddings: list[np.ndarray]):
     """
     Continue training the loaded model with new data.
 
@@ -85,7 +85,6 @@ def train_model(service: ModelService, user_id: str, embeddings: list[np.ndarray
     label_encoder = service.get_label_encoder()
     # Lấy các nhãn hiện tại và thêm nhãn mới
     all_labels = np.unique(list(label_encoder.classes_) + [user_id])
-
     # Mã hóa nhãn thành dạng số
     label_encoder = LabelEncoder()
     label_encoder.fit(all_labels)
@@ -93,11 +92,21 @@ def train_model(service: ModelService, user_id: str, embeddings: list[np.ndarray
     # Mã hóa nhãn mới
     y_new_encoded = label_encoder.transform(y_new)
     model = service.get_model()
-
     # Huấn luyện cải thiện với dữ liệu mới
     model.partial_fit(X_new, y_new_encoded)
-
+    logger.info('Model trained successfully with user ID: %s', user_id)
     service.set_label_encoder(label_encoder)
+
+
+def predict_model(service, embeddings: list[np.ndarray]) -> list[str]:
+    model = service.get_model()
+    label_encoder = service.get_label_encoder()
+    X = [embedding.flatten() for embedding in embeddings]
+    X = np.array(X, dtype=np.float64)
+    y_pred = model.predict(X)
+    user_ids = label_encoder.inverse_transform(y_pred)
+    return user_ids.tolist()
+
 
 def load_label_encode_from_file() -> LabelEncoder:
     if os.path.exists(LABEL_ENCODE_PATH):
