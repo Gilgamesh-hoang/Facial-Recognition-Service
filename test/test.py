@@ -1,3 +1,4 @@
+import logging
 import pickle
 import numpy as np
 from collections import defaultdict
@@ -6,7 +7,6 @@ import shutil
 import requests
 from PIL import Image
 from io import BytesIO
-
 
 def load_embedding(file_path):
     with open(file_path, 'rb') as f:
@@ -61,7 +61,7 @@ def delete_empty_subdirectories(parent_dir):
             file_count = len([f for f in os.listdir(sub_dir_path) if os.path.isfile(os.path.join(sub_dir_path, f))])
 
             # Nếu số lượng file dưới 3, xóa thư mục cấp 2
-            if file_count <=40:
+            if file_count <= 40:
                 shutil.rmtree(sub_dir_path)
                 print(f'Đã xóa thư mục: {sub_dir_path}')
 
@@ -100,7 +100,8 @@ def keep_max_files(root_directory, max_files=20):
                     print(f"Đang xóa file: {file_path}")
                     os.remove(file_path)  # Xóa file
 
-keep_max_files('D:\Download\lfw-funneled-Copy2\lfw_funneled', max_files=7)
+
+# keep_max_files('D:\Download\lfw-funneled-Copy2\lfw_funneled', max_files=7)
 def count_files_in_subdirectories(parent_dir):
     file_count_dict = defaultdict(int)
 
@@ -123,7 +124,6 @@ def count_files_in_subdirectories(parent_dir):
         print(f'{dir_name}: {count} file(s)')
 
 
-
 def count_folder(parent_dir):
     count = 0
     for dir_name in os.listdir(parent_dir):
@@ -131,11 +131,12 @@ def count_folder(parent_dir):
         if os.path.isdir(sub_dir_path):
             count += 1
     print(count)
+
+
 # count_folder('D:\Download\lfw-funneled-Copy\lfw_funneled')
 # print('=====================')
-count_folder('D:\Download\lfw-funneled-Copy2\lfw_funneled')
+# count_folder('D:\Download\lfw-funneled-Copy2\lfw_funneled')
 
 # Gọi hàm với đường dẫn thư mục cấp 1
 # parent_directory = 'D:\Download\lfw-funneled-Copy\lfw_funneled'  # Thay đổi đường dẫn này
-# count_files_in_subdirectories(parent_directory)
-
+# count_files_in_subdirectories(parent_directoryđề

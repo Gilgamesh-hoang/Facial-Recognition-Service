@@ -4,37 +4,37 @@ import pickle
 import numpy as np
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelEncoder
-
+import logging
 from src.services.model_service import ModelService
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
 LABEL_ENCODE_PATH = os.path.join(BASE_DIR, 'Models', 'label-encode.pkl')
-
+logger = logging.getLogger(__name__)
 
 def load_model_from_file() -> SGDClassifier | None:
     try:
         if os.path.exists(FACE_MODEL_PATH):
             with open(FACE_MODEL_PATH, 'rb') as file:
                 model = pickle.load(file)
-            print('Model loaded successfully')
+            logger.info('Model loaded successfully')
         else:
             model = create_and_save_face_model()  # Gọi hàm tạo model mới nếu file không tồn tại
 
         return model  # Trả về model sau khi đã gán giá trị
     except FileNotFoundError:
-        print('Model file not found')
+        logger.error('Model file not found')
         return None  # Trả về None nếu có lỗi
 
 
 def save_model_to_file(model: SGDClassifier):
     if model is None:
-        print('Model is None')
+        logger.error('Model is None')
         return
 
     with open(FACE_MODEL_PATH, 'wb') as file:
         pickle.dump(model, file)
-    print('Model saved successfully')
+    logger.info('Model saved successfully')
 
 
 def create_and_save_face_model() -> SGDClassifier:
@@ -56,8 +56,7 @@ def create_and_save_face_model() -> SGDClassifier:
     label_encoder = LabelEncoder()
     y_encoded = label_encoder.fit_transform(y)
 
-    print('Train model with dummy data')
-
+    logger.info('Train model with dummy data')
     # Khởi tạo và huấn luyện lần đầu
     model_classify = SGDClassifier(alpha=0.0001, learning_rate='optimal', loss='log_loss', max_iter=1000, penalty='l2',
                                    random_state=42)
@@ -67,7 +66,7 @@ def create_and_save_face_model() -> SGDClassifier:
 
     save_label_encode_file(label_encoder)
 
-    print("Model initialized")
+    logger.info('Model initialized')
     return model_classify
 
 
@@ -104,7 +103,7 @@ def load_label_encode_from_file() -> LabelEncoder:
     if os.path.exists(LABEL_ENCODE_PATH):
         with open(LABEL_ENCODE_PATH, 'rb') as file:
             label_encoder = pickle.load(file)
-            print('Label encoder loaded successfully')
+            logger.info('Label encoder loaded successfully')
             return label_encoder
     else:
         raise ValueError('Label encoder file not found')
@@ -113,7 +112,7 @@ def load_label_encode_from_file() -> LabelEncoder:
 def save_label_encode_file(label_encoder: LabelEncoder):
     with open(LABEL_ENCODE_PATH, 'wb') as file:
         pickle.dump(label_encoder, file)
-    print('Label encoder saved successfully')
+    logger.info('Label encoder saved successfully')
 
 
 if __name__ == '__main__':

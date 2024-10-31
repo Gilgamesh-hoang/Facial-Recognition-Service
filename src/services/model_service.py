@@ -1,14 +1,20 @@
+import logging
+
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelEncoder
 import src.services.classification as classification
 from src.models.response import Response
 from src.services.face_service import get_embeddings
 
+logger = logging.getLogger(__name__)
+
 
 class ModelService:
     def __init__(self):
         self.__model: SGDClassifier | None = None
         self.__label_encoder: LabelEncoder | None = None
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s - %(levelname)s - [in %(name)s:%(funcName)s():%(lineno)d] - %(message)s')
 
     def predict_user(self, data) -> str:
         pass

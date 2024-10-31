@@ -3,7 +3,6 @@
     'partial_fit'
 '''
 
-
 import numpy as np
 import scipy
 from sklearn.linear_model import SGDClassifier
