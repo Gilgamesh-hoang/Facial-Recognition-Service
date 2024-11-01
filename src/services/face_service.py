@@ -1,9 +1,11 @@
+import concurrent
 import os
+from concurrent.futures import ProcessPoolExecutor
 
 import cv2
 import numpy as np
 import tensorflow as tf
-
+import concurrent.futures
 import src.face_recognition.facenet as facenet
 from src.align import detect_face
 
@@ -11,18 +13,31 @@ from src.align import detect_face
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
 FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')  # Path to the FaceNet model
+MINSIZE = 20  # Minimum size of the face
+THRESHOLD = [0.7, 0.7, 0.8]  # Three steps' threshold
+FACTOR = 0.709  # Scale factor
+INPUT_IMAGE_SIZE = 160  # Size of the input image for the model
+
+def process_image(imageData, pnet, rnet, onet):
+    frame = cv2.imdecode(np.frombuffer(imageData, np.uint8), cv2.IMREAD_COLOR)
+    bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+    faces_found = bounding_boxes.shape[0]
+
+    if faces_found == 1:
+        bounding_box = bounding_boxes[0, 0:4].astype(int)
+        cropped = frame[bounding_box[1]:bounding_box[3], bounding_box[0]:bounding_box[2], :]
+        resized = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
+        prewhitened = facenet.prewhiten(resized)
+        return prewhitened
+    return None
+
 
 def get_embeddings(images_data: list[bytes]) -> list[np.ndarray]:
-    # Configuration parameters for face detection and recognition
-    MINSIZE = 20  # Minimum size of the face
-    THRESHOLD = [0.7, 0.7, 0.8]  # Three steps' threshold
-    FACTOR = 0.709  # Scale factor
-    INPUT_IMAGE_SIZE = 160  # Size of the input image for the model
-
     # Create a new TensorFlow graph and session once
     with tf.Graph().as_default():
         gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.6)
-        sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
+        sess = tf.compat.v1.Session(
+            config=tf.compat.v1.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
 
         with sess.as_default():
             facenet.load_model(FACENET_MODEL_PATH)
@@ -32,18 +47,21 @@ def get_embeddings(images_data: list[bytes]) -> list[np.ndarray]:
 
             pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
 
+            # Tạo một thread pool
             embeddings_list = []
             frames = []
-            for imageData in images_data:
-                frame = cv2.imdecode(np.frombuffer(imageData, np.uint8), cv2.IMREAD_COLOR)
-                bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
-                faces_found = bounding_boxes.shape[0]
-                if faces_found == 1:
-                    bounding_box = bounding_boxes[0, 0:4].astype(int)
-                    cropped = frame[bounding_box[1]:bounding_box[3], bounding_box[0]:bounding_box[2], :]
-                    resized = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
-                    prewhitened = facenet.prewhiten(resized)
-                    frames.append(prewhitened)
+
+            # Sử dụng ThreadPoolExecutor để xử lý hình ảnh
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                # Gửi các tác vụ vào thread pool
+                futures = {executor.submit(process_image, imageData, pnet, rnet, onet): imageData for imageData in
+                           images_data}
+
+                # Chờ cho tất cả các thread hoàn thành và thu thập kết quả
+                for future in concurrent.futures.as_completed(futures):
+                    result = future.result()
+                    if result is not None:
+                        frames.append(result)
 
             if frames:
                 reshaped = np.stack(frames).reshape(-1, INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE, 3)
@@ -53,10 +71,32 @@ def get_embeddings(images_data: list[bytes]) -> list[np.ndarray]:
             sess.close()
             return embeddings_list
 
+def rotate_image():
+    pass
+
 if __name__ == "__main__":
-    images = []
-    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\21130363.png', 'rb') as file:
-        data = file.read()
-        images.append(data)
-        images.append(data)
-        images.append(data)
+    # images = []
+    # with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\21130363.png', 'rb') as file:
+    #     data = file.read()
+    #     images.append(data)
+    #     images.append(data)
+    #     images.append(data)
+    # import time
+    #
+    # copy = images.copy()
+    # start = time.time()
+    # embeddings = get_embeddings(copy)
+    # print(time.time() - start)
+
+    print('tensorflow:', tf.__version__)
+    print("Num GPUs Available: ", tf.test.is_gpu_available)
+    print(tf.test.gpu_device_name)
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+    import torch
+    print('torch:', torch.__version__)
+    print("Number of GPU: ", torch.cuda.device_count())
+    print("GPU Name: ", torch.cuda.get_device_name())
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)

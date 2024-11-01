@@ -1,12 +1,13 @@
-import logging
-import pickle
-import numpy as np
-from collections import defaultdict
 import os
+import pickle
 import shutil
+from collections import defaultdict
+from io import BytesIO
+
+import numpy as np
 import requests
 from PIL import Image
-from io import BytesIO
+
 
 def load_embedding(file_path):
     with open(file_path, 'rb') as f:
@@ -131,7 +132,6 @@ def count_folder(parent_dir):
         if os.path.isdir(sub_dir_path):
             count += 1
     print(count)
-
 
 # count_folder('D:\Download\lfw-funneled-Copy\lfw_funneled')
 # print('=====================')
