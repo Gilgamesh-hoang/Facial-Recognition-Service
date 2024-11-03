@@ -8,25 +8,21 @@ import tensorflow as tf
 import concurrent.futures
 import src.face_recognition.facenet as facenet
 from src.align import detect_face
+import src.utils.constant as constant
 
-# Get the base directory of the project (parent of src/)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
-FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')  # Path to the FaceNet model
-MINSIZE = 20  # Minimum size of the face
-THRESHOLD = [0.7, 0.7, 0.8]  # Three steps' threshold
-FACTOR = 0.709  # Scale factor
-INPUT_IMAGE_SIZE = 160  # Size of the input image for the model
 
-def process_image(imageData, pnet, rnet, onet):
-    frame = cv2.imdecode(np.frombuffer(imageData, np.uint8), cv2.IMREAD_COLOR)
-    bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+# sua lai ham process_image, lay all face trong 1 anh
+def process_image(image_data, pnet, rnet, onet):
+    frame = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
+    bounding_boxes, _ = detect_face.detect_face(frame, constant.MINSIZE, pnet, rnet, onet, constant.THRESHOLD,
+                                                constant.FACTOR)
     faces_found = bounding_boxes.shape[0]
 
     if faces_found == 1:
         bounding_box = bounding_boxes[0, 0:4].astype(int)
         cropped = frame[bounding_box[1]:bounding_box[3], bounding_box[0]:bounding_box[2], :]
-        resized = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
+        resized = cv2.resize(cropped, (constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE),
+                             interpolation=cv2.INTER_CUBIC)
         prewhitened = facenet.prewhiten(resized)
         return prewhitened
     return None
@@ -40,12 +36,12 @@ def get_embeddings(images_data: list[bytes]) -> list[np.ndarray]:
             config=tf.compat.v1.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
 
         with sess.as_default():
-            facenet.load_model(FACENET_MODEL_PATH)
+            facenet.load_model(constant.FACENET_MODEL_PATH)
             images_placeholder = tf.compat.v1.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.compat.v1.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.compat.v1.get_default_graph().get_tensor_by_name("phase_train:0")
 
-            pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
+            pnet, rnet, onet = detect_face.create_mtcnn(sess, constant.DET_MODEL_DIR)
 
             # Tạo một thread pool
             embeddings_list = []
@@ -64,15 +60,17 @@ def get_embeddings(images_data: list[bytes]) -> list[np.ndarray]:
                         frames.append(result)
 
             if frames:
-                reshaped = np.stack(frames).reshape(-1, INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE, 3)
+                reshaped = np.stack(frames).reshape(-1, constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE, 3)
                 feed_dict = {images_placeholder: reshaped, phase_train_placeholder: False}
                 embeddings_list = sess.run(embeddings, feed_dict=feed_dict)
 
             sess.close()
             return embeddings_list
 
+
 def rotate_image():
     pass
+
 
 if __name__ == "__main__":
     # images = []
@@ -88,15 +86,16 @@ if __name__ == "__main__":
     # embeddings = get_embeddings(copy)
     # print(time.time() - start)
 
-    print('tensorflow:', tf.__version__)
-    print("Num GPUs Available: ", tf.test.is_gpu_available)
-    print(tf.test.gpu_device_name)
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-    import torch
-    print('torch:', torch.__version__)
-    print("Number of GPU: ", torch.cuda.device_count())
-    print("GPU Name: ", torch.cuda.get_device_name())
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print('Using device:', device)
+    # print('tensorflow:', tf.__version__)
+    # print("Num GPUs Available: ", tf.test.is_gpu_available)
+    # print(tf.test.gpu_device_name)
+    # print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+    #
+    # import torch
+    # print('torch:', torch.__version__)
+    # print("Number of GPU: ", torch.cuda.device_count())
+    # print("GPU Name: ", torch.cuda.get_device_name())
+    #
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # print('Using device:', device)
+    pass

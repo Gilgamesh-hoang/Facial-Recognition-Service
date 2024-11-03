@@ -1,4 +1,3 @@
-import os
 import pickle
 
 import numpy as np
@@ -7,8 +6,6 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import LabelEncoder
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def GridSearchCV_GaussianNB():

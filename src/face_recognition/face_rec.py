@@ -1,6 +1,9 @@
 import concurrent
+import math
 import os
 import sys
+
+import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 import cv2
@@ -106,32 +109,62 @@ def detect_and_mark_landmarks(image_path):
             faces_found = bounding_boxes.shape[0]
             # print(f'Number of faces found: {faces_found}')
             # print('points:', points)
+            # print('bounding_boxes:', bounding_boxes)
 
-            draw_landmarks(frame, points)
+            # draw_landmarks(frame, points)
 
             file_name = os.path.basename(image_path)
             # save the image with landmarks to file with file name
             # cv2.imwrite(f'C:\\Users\\FPT SHOP\\Pictures\\landmarks_{file_name}', frame)
 
             # Display the image with landmarks
-            cv2.imshow(f'Image with Landmarks {file_name}', frame)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            # cv2.imshow(f'Image with Landmarks {file_name}', frame)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
 
+            left_eye_x = int(points[0, 0])  # Tọa độ x mắt trái
+            left_eye_y = int(points[5, 0])  # Tọa độ y mắt trái
+            right_eye_x = int(points[1, 0])  # Tọa độ x mắt phải
+            right_eye_y = int(points[6, 0])  # Tọa độ y mắt phải
+            left_eye = (left_eye_x, left_eye_y)  # (x, y) của mắt trái
+            right_eye = (right_eye_x, right_eye_y)  # (x, y) của mắt phải
+            # print(f"Left eye: {left_eye}")
+            # print(f"Right eye: {right_eye}")
+            rotate_face_to_align_eyes(image_path, left_eye, right_eye)
 
 def draw_landmarks(frame, points):
-    for i in range(points.shape[1]):
-        for j in range(5):
-            # Tính toán tọa độ của điểm landmark
-            x = int(points[j, i])
-            y = int(points[j + 5, i])
+    # Duyệt qua từng cặp tọa độ của điểm landmark
+    for i in range(points.shape[1]):  # Lặp qua các bức ảnh (N)
+        # Lấy tọa độ x và y cho từng điểm
+        left_eye_x = int(points[0, i])  # Tọa độ x mắt trái
+        left_eye_y = int(points[5, i])  # Tọa độ y mắt trái
+        right_eye_x = int(points[1, i])  # Tọa độ x mắt phải
+        right_eye_y = int(points[6, i])  # Tọa độ y mắt phải
+        nose_x = int(points[2, i])  # Tọa độ x mũi
+        nose_y = int(points[7, i])  # Tọa độ y mũi
+        mouth_left_x = int(points[3, i])  # Tọa độ x góc miệng trái
+        mouth_left_y = int(points[8, i])  # Tọa độ y góc miệng trái
+        mouth_right_x = int(points[4, i])  # Tọa độ x góc miệng phải
+        mouth_right_y = int(points[9, i])  # Tọa độ y góc miệng phải
 
-            # Vẽ hình tròn tại điểm landmark
-            cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
+        # Vẽ hình tròn tại các điểm landmark
+        cv2.circle(frame, (left_eye_x, left_eye_y), 2, (0, 255, 0), -1)
+        cv2.circle(frame, (right_eye_x, right_eye_y), 2, (0, 255, 0), -1)
+        cv2.circle(frame, (nose_x, nose_y), 2, (0, 255, 0), -1)
+        cv2.circle(frame, (mouth_left_x, mouth_left_y), 2, (0, 255, 0), -1)
+        cv2.circle(frame, (mouth_right_x, mouth_right_y), 2, (0, 255, 0), -1)
 
-            # Đánh số cho từng điểm landmark
-            text = str(j + 1)  # Tạo chuỗi số từ 1 đến 5
-            cv2.putText(frame, text, (x + 5, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+        # Đánh số cho từng điểm landmark
+        cv2.putText(frame, f'{left_eye_x};{left_eye_y}', (left_eye_x + 5, left_eye_y - 5), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, (255, 0, 0), 1)  # Mắt trái
+        cv2.putText(frame, f'{right_eye_x};{right_eye_y}', (right_eye_x + 5, right_eye_y - 5), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, (255, 0, 0), 1)  # Mắt phải
+        cv2.putText(frame, f'{nose_x};{nose_y}', (nose_x + 5, nose_y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0),
+                    1)  # Mũi
+        cv2.putText(frame, f'{mouth_left_x};{mouth_left_y}', (mouth_left_x + 5, mouth_left_y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)  # Miệng trái
+        cv2.putText(frame, f'{mouth_right_x};{mouth_right_y}', (mouth_right_x + 5, mouth_right_y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)  # Miệng phải
 
 
 def plot_detected_faces(root_path):
@@ -220,19 +253,59 @@ def rotate(image_path):
     original_image = Image.open(image_path)
 
     # rotate image from 0 to 360 degrees with step 30 degrees
-    angles = range(0, 360, 5)
+    # angles = range(0, 360, 5)
+    angles = [30]
 
     for angle in angles:
         # Rotate the image
         rotated_image = original_image.rotate(angle)
 
         # write image to file
-        rotated_image.save(f"E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_{angle}.png")
+        rotated_image.save(f"E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated1_{angle}.png")
+
+
+def rotate_face_to_align_eyes(image_path, left_eye, right_eye):
+    image = Image.open(image_path)
+    # Tọa độ của mắt trái và mắt phải
+    (x1, y1) = left_eye
+    (x2, y2) = right_eye
+
+    # Tính góc xoay từ mắt trái đến mắt phải
+    angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
+    print(f"Calculated Rotation Angle: {angle}")
+
+    # Tính toán trung điểm của hai mắt, dùng làm điểm xoay
+    eyes_center = ((x1 + x2) // 2, (y1 + y2) // 2)
+
+    # Chuyển đổi ảnh từ PIL sang NumPy array
+    image_np = np.array(image)
+
+    # Lấy ma trận xoay ngược với góc tính được để làm ảnh nằm ngang
+    rotation_matrix = cv2.getRotationMatrix2D(eyes_center, angle, 1.0)
+
+    # Xoay ảnh
+    rotated_image = cv2.warpAffine(image_np, rotation_matrix, (image_np.shape[1], image_np.shape[0]),
+                                   flags=cv2.INTER_LINEAR)
+    cv2.imwrite(f"E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated2.png", rotated_image)
+
+    # get center of the image
+    # cai nay dung de xoay anh theo tam cua anh neu co nhieu face
+    # center = (image_np.shape[1] // 2, image_np.shape[0] // 2)
+    # rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    # rotated_image = cv2.warpAffine(image_np, rotation_matrix, (image_np.shape[1], image_np.shape[0]),
+    #                                flags=cv2.INTER_LINEAR)
+    # cv2.imwrite(f"E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated3.png", rotated_image)
+
+    # Lưu hoặc hiển thị ảnh đã xoay
+    # cv2.imshow("Aligned Face", rotated_image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    # return rotated_image
 
 
 # Sử dụng hàm với đường dẫn ảnh của bạn
-# rotate("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\raw\\hoang\\21130363.jpg")
-# main2("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate")
-detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_325.png")
-detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_110.png")
+# rotate("C:\\Users\\FPT SHOP\\Pictures\\Saved Pictures\\IMG_20240213_123347.jpg")
+# detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_5.png")
+detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_0.png")
+detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_330.png")
 

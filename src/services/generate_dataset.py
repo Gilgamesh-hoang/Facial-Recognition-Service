@@ -8,16 +8,7 @@ import tensorflow as tf
 
 import src.face_recognition.facenet as facenet
 from src.align import detect_face
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
-FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')  # Path to the FaceNet model
-
-# Global variables to reuse model and session
-MINSIZE = 20  # Minimum size of the face
-THRESHOLD = [0.7, 0.7, 0.8]  # MTCNN thresholds
-FACTOR = 0.709  # Scale factor
-INPUT_IMAGE_SIZE = 160  # Input size for FaceNet
+import src.utils.constant as constant
 
 
 def initialize_session():
@@ -27,11 +18,11 @@ def initialize_session():
     sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options))
 
     with sess.as_default():
-        facenet.load_model(FACENET_MODEL_PATH)
+        facenet.load_model(constant.FACENET_MODEL_PATH)
         images_placeholder = tf.compat.v1.get_default_graph().get_tensor_by_name("input:0")
         embeddings = tf.compat.v1.get_default_graph().get_tensor_by_name("embeddings:0")
         phase_train_placeholder = tf.compat.v1.get_default_graph().get_tensor_by_name("phase_train:0")
-        pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
+        pnet, rnet, onet = detect_face.create_mtcnn(sess, constant.DET_MODEL_DIR)
 
     return sess, images_placeholder, embeddings, phase_train_placeholder, pnet, rnet, onet
 
@@ -44,7 +35,8 @@ def process_image(file_path, sess, images_placeholder, embeddings, phase_train_p
         return None
 
     # Detect faces
-    bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+    bounding_boxes, _ = detect_face.detect_face(frame, constant.MINSIZE, pnet, rnet, onet, constant.THRESHOLD,
+                                                constant.FACTOR)
     if bounding_boxes.shape[0] != 1:  # Skip if not exactly one face detected
         return None
     # Extract and preprocess the face
@@ -54,8 +46,8 @@ def process_image(file_path, sess, images_placeholder, embeddings, phase_train_p
         print(f"Empty cropped image for {file_path}. Skipping.")
         return None
 
-    resized = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
-    prewhitened = facenet.prewhiten(resized).reshape(-1, INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE, 3)
+    resized = cv2.resize(cropped, (constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
+    prewhitened = facenet.prewhiten(resized).reshape(-1, constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE, 3)
 
     # Compute the embedding
     feed_dict = {images_placeholder: prewhitened, phase_train_placeholder: False}
@@ -130,7 +122,7 @@ def generate_embedding():
         with sess.as_default():
             # Load the MTCNN model for face detection
             print('Loading feature extraction model')
-            facenet.load_model(FACENET_MODEL_PATH)
+            facenet.load_model(constant.FACENET_MODEL_PATH)
 
             # Get input and output tensors
             images_placeholder = tf.compat.v1.get_default_graph().get_tensor_by_name("input:0")
@@ -139,13 +131,14 @@ def generate_embedding():
             embedding_size = embeddings.get_shape()[1]
 
             # Initialize MTCNN networks
-            pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
+            pnet, rnet, onet = detect_face.create_mtcnn(sess, constant.DET_MODEL_DIR)
 
             # Read the image
             frame = cv2.imread(IMAGE_PATH)
 
             # Detect faces in the image
-            bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+            bounding_boxes, _ = detect_face.detect_face(frame, constant.MINSIZE, pnet, rnet, onet, constant.THRESHOLD,
+                                                        constant.FACTOR)
             faces_found = bounding_boxes.shape[0]
 
             if faces_found > 0:
@@ -159,9 +152,10 @@ def generate_embedding():
 
                     # Crop and display each face
                     cropped = frame[bb[i][1]:bb[i][3], bb[i][0]:bb[i][2], :]
-                    resized = cv2.resize(cropped, (INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
+                    resized = cv2.resize(cropped, (constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE),
+                                         interpolation=cv2.INTER_CUBIC)
                     prewhitened = facenet.prewhiten(resized)
-                    reshaped = prewhitened.reshape(-1, INPUT_IMAGE_SIZE, INPUT_IMAGE_SIZE, 3)
+                    reshaped = prewhitened.reshape(-1, constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE, 3)
 
                     # Get the embedding vector
                     feed_dict = {images_placeholder: reshaped, phase_train_placeholder: False}

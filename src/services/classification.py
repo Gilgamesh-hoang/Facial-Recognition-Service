@@ -5,17 +5,15 @@ import numpy as np
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelEncoder
 import logging
+import src.utils.constant as constant
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FACE_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
-LABEL_ENCODE_PATH = os.path.join(BASE_DIR, 'Models', 'label-encode.pkl')
 logger = logging.getLogger(__name__)
 
 
 def load_model_from_file() -> SGDClassifier | None:
     try:
-        if os.path.exists(FACE_MODEL_PATH):
-            with open(FACE_MODEL_PATH, 'rb') as file:
+        if os.path.exists(constant.FACENET_MODEL_PATH):
+            with open(constant.FACENET_MODEL_PATH, 'rb') as file:
                 model = pickle.load(file)
             logger.info('Model loaded successfully')
         else:
@@ -32,13 +30,13 @@ def save_model_to_file(model: SGDClassifier):
         logger.error('Model is None')
         return
 
-    with open(FACE_MODEL_PATH, 'wb') as file:
+    with open(constant.FACENET_MODEL_PATH, 'wb') as file:
         pickle.dump(model, file)
     logger.info('Model saved successfully')
 
 
 def create_and_save_face_model() -> SGDClassifier:
-    with open(os.path.join(BASE_DIR, 'Dataset', 'FaceData', 'embeddings.pkl'), 'rb') as f:
+    with open(constant.DATASET_EMBEDDINGS_PATH, 'rb') as f:
         data = pickle.load(f)
 
     # Chuẩn bị dữ liệu
@@ -109,8 +107,8 @@ def predict_model(service, embeddings: list[np.ndarray]) -> list[str]:
 
 
 def load_label_encode_from_file() -> LabelEncoder:
-    if os.path.exists(LABEL_ENCODE_PATH):
-        with open(LABEL_ENCODE_PATH, 'rb') as file:
+    if os.path.exists(constant.LABEL_ENCODE_PATH):
+        with open(constant.LABEL_ENCODE_PATH, 'rb') as file:
             label_encoder = pickle.load(file)
             logger.info('Label encoder loaded successfully')
             return label_encoder
@@ -119,7 +117,7 @@ def load_label_encode_from_file() -> LabelEncoder:
 
 
 def save_label_encode_file(label_encoder: LabelEncoder):
-    with open(LABEL_ENCODE_PATH, 'wb') as file:
+    with open(constant.LABEL_ENCODE_PATH, 'wb') as file:
         pickle.dump(label_encoder, file)
     logger.info('Label encoder saved successfully')
 
