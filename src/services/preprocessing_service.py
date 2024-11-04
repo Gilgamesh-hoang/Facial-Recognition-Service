@@ -25,7 +25,7 @@ class PreprocessingService:
                 pnet, rnet, onet = create_mtcnn(sess, constant.DET_MODEL_DIR)
                 return pnet, rnet, onet
 
-    def pre_process_image(self, images_data: list[bytes]) -> list[np.ndarray]:
+    def pre_process_image(self, images_data: list[np.ndarray]) -> list[np.ndarray]:
         # Sử dụng ThreadPoolExecutor để xử lý hình ảnh
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             # Gửi các tác vụ vào thread pool
@@ -38,21 +38,18 @@ class PreprocessingService:
                 result = future.result()
                 if result is not None:
                     frames.extend(result)
-        # write frames to a file
-        print(type(frames))  # <class 'list'>
-        print(type(frames[0]))  # <class 'numpy.ndarray'>
-        with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\list_ndarray.pkl', 'wb') as f:
-            pickle.dump(frames, f)
 
         return frames
 
-    def process_image(self, image_data: bytes, angle=90) -> list[np.ndarray] | None:
-        frame = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
+    def process_image(self, image_data: np.ndarray, angle=90) -> list[np.ndarray] | None:
+        image_data = self.resize_image(image_data, 800, 800)
+
+        frame = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
         bounding_boxes, points = detect_face(frame, constant.MINSIZE, self.__pnet, self.__rnet, self.__onet,
                                              constant.THRESHOLD, constant.FACTOR)
         faces_found = bounding_boxes.shape[0]
-        # if faces_found > 3:
-        #     return None
+        if faces_found > 3:
+            return None
 
         if faces_found > 0:
             left_eye, right_eye, _, _, _ = self.get_coordinates(points)
@@ -65,7 +62,22 @@ class PreprocessingService:
         rotated_image = cv2.rotate(frame, angle)
         # get bytes of rotated image
         rotated_image_bytes = cv2.imencode('.jpg', rotated_image)[1].tobytes()
-        return self.process_image(rotated_image_bytes, angle + 90)
+        return self.process_image(np.frombuffer(rotated_image_bytes, np.uint8), angle + 90)
+
+    def resize_image(self, image: np.ndarray, max_width: int, max_height: int)-> np.ndarray:
+        # Bước 1: Lấy kích thước hiện tại của ảnh
+        height, width = image.shape[:2]
+
+        # Bước 2: Kiểm tra nếu ảnh vượt quá kích thước tối đa
+        if width > max_width or height > max_height:
+            # Tính toán tỉ lệ để giữ nguyên tỷ lệ của ảnh khi resize
+            scaling_factor = min(max_width / width, max_height / height)
+            new_width = int(width * scaling_factor)
+            new_height = int(height * scaling_factor)
+            resized_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            return resized_image
+        else:
+            return image
 
     def crop_and_resize(self, frame: np.ndarray) -> list[np.ndarray]:
         """

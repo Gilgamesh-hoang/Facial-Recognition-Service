@@ -2,6 +2,8 @@ import json
 import os
 from contextlib import asynccontextmanager
 
+import cv2
+import numpy as np
 import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException, Depends
@@ -29,10 +31,10 @@ model_service = ModelService()
 async def lifespan(app: FastAPI):
     """Lifespan handler để load model khi ứng dụng khởi động."""
     print("Starting application...")
-    model_service.load_components()
+    # model_service.load_components()
     yield  # Ứng dụng chạy tại đây
     print("Shutting down application...")
-    model_service.save_components()
+    # model_service.save_components()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -46,12 +48,14 @@ def get_model_service() -> ModelService:
 # Thêm middleware nếu cần (ví dụ: CORS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3900"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"]
 )
-
+@app.get("/a")
+async def testCORS():
+    return {"message": "Hello World"}
 
 # @app.post("/identify-face")
 # async def identify_face(request: ImageRequest, service: ModelService = Depends(get_model_service)):
@@ -79,7 +83,7 @@ async def identify_face(service: ModelService = Depends(get_model_service)):
     return response.to_dict()
 
 @app.post("/train-image")
-async def upload_image_for_training(service: ModelService = Depends(get_model_service)):
+async def upload_image_for_training2(service: ModelService = Depends(get_model_service)):
     images = []
     with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_30.png',
               'rb') as file:
@@ -95,27 +99,33 @@ async def upload_image_for_training(service: ModelService = Depends(get_model_se
     return response.to_dict()
 
 
-# @app.post("/train-image")
-# async def upload_image_for_training(request: ImagesRequest, service: ModelService = Depends(get_model_service)):
-#     if not request.user_id:
-#         raise HTTPException(status_code=400, detail="No user_id provided")
-#
-#     imageURLs = request.imageURLs
-#     if not imageURLs:
-#         raise HTTPException(status_code=400, detail="No images provided")
-#
-#     images = []
-#     try:
-#         for url in imageURLs:
-#             response = requests.get(url)
-#             response.raise_for_status()
-#             img_data = response.content
-#             images.append(img_data)
-#     except requests.RequestException as e:
-#         raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
-#
-#     response = service.train_classifier(request.user_id, images)
-#     return response.to_dict()
+@app.post("/train-image")
+async def upload_image_for_training(request: ImagesRequest, service: ModelService = Depends(get_model_service)):
+    if not request.user_id:
+        raise HTTPException(status_code=400, detail="No user_id provided")
+
+    imageURLs = request.imageURLs
+    if not imageURLs:
+        raise HTTPException(status_code=400, detail="No images provided")
+
+    images = []
+    try:
+        for url in imageURLs:
+            response = requests.get(url)
+            response.raise_for_status()
+            img_data = response.content
+
+            # Kiểm tra tính toàn vẹn của ảnh bằng OpenCV
+            img_arr = np.frombuffer(img_data, np.uint8)
+            image = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
+            if image is None:
+                raise ValueError("Dữ liệu không phải là một ảnh hợp lệ.")
+            images.append(img_arr)
+    except requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
+
+    response = service.train_classifier(request.user_id, images)
+    return response.to_dict()
 
 
 if __name__ == "__main__":

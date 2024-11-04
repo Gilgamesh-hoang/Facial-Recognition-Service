@@ -1,6 +1,8 @@
 import concurrent
 import math
 import os
+from random import random
+
 import src.utils.constant as constant
 import numpy as np
 
@@ -96,30 +98,30 @@ def detect_and_mark_landmarks(image_path):
             # Detect faces in the image
             bounding_boxes, points = detect_face.detect_face(frame, constant.MINSIZE, pnet, rnet, onet, constant.THRESHOLD, constant.FACTOR)
             faces_found = bounding_boxes.shape[0]
-            # print(f'Number of faces found: {faces_found}')
+            print(f'Number of faces found: {faces_found}')
             # print('points:', points)
             # print('bounding_boxes:', bounding_boxes)
 
-            # draw_landmarks(frame, points)
+            draw_landmarks(frame, points)
 
             file_name = os.path.basename(image_path)
             # save the image with landmarks to file with file name
-            # cv2.imwrite(f'C:\\Users\\FPT SHOP\\Pictures\\landmarks_{file_name}', frame)
+            cv2.imwrite(f'C:\\Users\\FPT SHOP\\Pictures\\landmarks_{file_name}', frame)
 
             # Display the image with landmarks
             # cv2.imshow(f'Image with Landmarks {file_name}', frame)
             # cv2.waitKey(0)
             # cv2.destroyAllWindows()
 
-            left_eye_x = int(points[0, 0])  # Tọa độ x mắt trái
-            left_eye_y = int(points[5, 0])  # Tọa độ y mắt trái
-            right_eye_x = int(points[1, 0])  # Tọa độ x mắt phải
-            right_eye_y = int(points[6, 0])  # Tọa độ y mắt phải
-            left_eye = (left_eye_x, left_eye_y)  # (x, y) của mắt trái
-            right_eye = (right_eye_x, right_eye_y)  # (x, y) của mắt phải
+            # left_eye_x = int(points[0, 0])  # Tọa độ x mắt trái
+            # left_eye_y = int(points[5, 0])  # Tọa độ y mắt trái
+            # right_eye_x = int(points[1, 0])  # Tọa độ x mắt phải
+            # right_eye_y = int(points[6, 0])  # Tọa độ y mắt phải
+            # left_eye = (left_eye_x, left_eye_y)  # (x, y) của mắt trái
+            # right_eye = (right_eye_x, right_eye_y)  # (x, y) của mắt phải
             # print(f"Left eye: {left_eye}")
             # print(f"Right eye: {right_eye}")
-            rotate_face_to_align_eyes(image_path, left_eye, right_eye)
+            # rotate_face_to_align_eyes(image_path, left_eye, right_eye)
 
 def draw_landmarks(frame, points):
     # Duyệt qua từng cặp tọa độ của điểm landmark
@@ -295,6 +297,5 @@ def rotate_face_to_align_eyes(image_path, left_eye, right_eye):
 # Sử dụng hàm với đường dẫn ảnh của bạn
 # rotate("C:\\Users\\FPT SHOP\\Pictures\\Saved Pictures\\IMG_20240213_123347.jpg")
 # detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_5.png")
-detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_0.png")
-detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_330.png")
-
+# detect_and_mark_landmarks("C:\\Users\FPT SHOP\Pictures\Saved Pictures\IMG_3137-01.jpeg")
+detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\resize\\0.408407190993333.jpg")

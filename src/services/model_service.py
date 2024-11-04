@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+import numpy as np
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelEncoder
 
@@ -25,7 +26,7 @@ class ModelService:
         classification.save_model_to_file(self.__model)
         classification.save_label_encode_file(self.__label_encoder)
 
-    def predict_user(self, image: bytes) -> Response:
+    def predict_user(self, image: np.ndarray) -> Response:
         pre_process = PreprocessingService()
         data_processed = pre_process.pre_process_image([image])[0]
 
@@ -47,7 +48,7 @@ class ModelService:
             data=user_ids
         )
 
-    def train_classifier(self, user_id: str, images: list[bytes]) -> Response:
+    def train_classifier(self, user_id: str, images: list[np.ndarray]) -> Response:
         pre_process = PreprocessingService()
         data_processed = pre_process.pre_process_image(images)
 

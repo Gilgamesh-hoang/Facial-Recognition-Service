@@ -10,7 +10,7 @@
 #        "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg"
 #    ]
 #}
-
+GET http://localhost:8111/a
 ### Test for identifying face
 POST http://localhost:8111/identify-face
 Content-Type: application/json
