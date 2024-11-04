@@ -1,5 +1,6 @@
 import concurrent
 import math
+import pickle
 
 import numpy as np
 
@@ -36,7 +37,13 @@ class PreprocessingService:
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 if result is not None:
-                    frames.append(result)
+                    frames.extend(result)
+        # write frames to a file
+        print(type(frames))  # <class 'list'>
+        print(type(frames[0]))  # <class 'numpy.ndarray'>
+        with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\list_ndarray.pkl', 'wb') as f:
+            pickle.dump(frames, f)
+
         return frames
 
     def process_image(self, image_data: bytes, angle=90) -> list[np.ndarray] | None:
@@ -44,8 +51,8 @@ class PreprocessingService:
         bounding_boxes, points = detect_face(frame, constant.MINSIZE, self.__pnet, self.__rnet, self.__onet,
                                              constant.THRESHOLD, constant.FACTOR)
         faces_found = bounding_boxes.shape[0]
-        if faces_found > 3:
-            return None
+        # if faces_found > 3:
+        #     return None
 
         if faces_found > 0:
             left_eye, right_eye, _, _, _ = self.get_coordinates(points)

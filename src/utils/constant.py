@@ -10,6 +10,8 @@ DET_MODEL_DIR = os.path.join(BASE_DIR, 'src', 'align')
 
 FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')
 
+CLASSIFY_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
+
 LABEL_ENCODE_PATH = os.path.join(BASE_DIR, 'Models', 'label-encode.pkl')
 
 DATASET_EMBEDDINGS_PATH = os.path.join(BASE_DIR, 'Dataset', 'FaceData', 'embeddings.pkl')

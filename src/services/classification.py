@@ -9,11 +9,11 @@ import src.utils.constant as constant
 
 logger = logging.getLogger(__name__)
 
-
 def load_model_from_file() -> SGDClassifier | None:
     try:
-        if os.path.exists(constant.FACENET_MODEL_PATH):
-            with open(constant.FACENET_MODEL_PATH, 'rb') as file:
+        if os.path.exists(constant.CLASSIFY_MODEL_PATH):
+            print('Model file found')
+            with open(constant.CLASSIFY_MODEL_PATH, 'rb') as file:
                 model = pickle.load(file)
             logger.info('Model loaded successfully')
         else:
@@ -30,7 +30,7 @@ def save_model_to_file(model: SGDClassifier):
         logger.error('Model is None')
         return
 
-    with open(constant.FACENET_MODEL_PATH, 'wb') as file:
+    with open(constant.CLASSIFY_MODEL_PATH, 'wb') as file:
         pickle.dump(model, file)
     logger.info('Model saved successfully')
 

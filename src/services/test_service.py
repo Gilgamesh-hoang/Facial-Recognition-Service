@@ -1,4 +1,3 @@
-from src.services.model_service import ModelService
 from src.services.preprocessing_service import PreprocessingService
 
 
@@ -11,12 +10,16 @@ def test1(paths: list[str]):
             lst.append(f.read())
     images = process.pre_process_image(lst)
 
-    #     print len of item in images
-    for image in images:
-        print('len', len(image))
+    print('len', len(images))
+
+    print(f"Type of frames: {type(images)}")  # In kiểu của `frames` (nên là list)
+    if images:
+        print(f"Type of frames[0]: {type(images[0])}")  # Kiểm tra phần tử đầu tiên của `frames`
+        if isinstance(images[0], list):
+            print(f"Type of frames[0][0]: {type(images[0][0])}")  # Nếu frames[0] là list, kiểm tra phần tử đầu tiên
 
 
 if __name__ == '__main__':
     test1([
-        'C:\\Users\\FPT SHOP\\Pictures\\Saved Pictures\\IMG_20220820_063751.jpg',
+        'E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated1_30.png'
     ])

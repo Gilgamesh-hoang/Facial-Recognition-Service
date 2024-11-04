@@ -73,7 +73,7 @@ app.add_middleware(
 #     return response.to_dict()
 @app.post("/identify-face")
 async def identify_face(service: ModelService = Depends(get_model_service)):
-    img_data = open("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\21130363.png", "rb").read()
+    img_data = open("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_350.png", "rb").read()
     # Gọi hàm nhận diện khuôn mặt với dữ liệu bytes của ảnh
     response = service.predict_user(img_data)
     return response.to_dict()
@@ -81,17 +81,12 @@ async def identify_face(service: ModelService = Depends(get_model_service)):
 @app.post("/train-image")
 async def upload_image_for_training(service: ModelService = Depends(get_model_service)):
     images = []
-    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\IMG_20240213_123347.jpg',
+    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_30.png',
               'rb') as file:
         data = file.read()
         images.append(data)
 
     with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\IMG_20230123_083911.png',
-              'rb') as file:
-        data = file.read()
-        images.append(data)
-
-    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\IMG_20240213_123610.png',
               'rb') as file:
         data = file.read()
         images.append(data)

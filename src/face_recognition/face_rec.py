@@ -1,26 +1,15 @@
 import concurrent
 import math
 import os
-import sys
-
+import src.utils.constant as constant
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 import cv2
 import tensorflow as tf
 from src.align import detect_face
 import concurrent.futures
 from PIL import Image
 import matplotlib.pyplot as plt
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FACENET_MODEL_PATH = os.path.join(BASE_DIR, 'Models', '20180402-114759.pb')  # Path to the FaceNet model
-
-# Configuration parameters
-MINSIZE = 20
-THRESHOLD = [0.7, 0.7, 0.8]
-FACTOR = 0.709
-INPUT_IMAGE_SIZE = 160
 IMAGE_PATH = 'E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\21130363.png'
 
 
@@ -42,13 +31,13 @@ def main():
             # embedding_size = embeddings.get_shape()[1]
 
             # Initialize MTCNN networks
-            pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
+            pnet, rnet, onet = detect_face.create_mtcnn(sess, constant.DET_MODEL_DIR)
 
             # Read the image
             frame = cv2.imread(IMAGE_PATH)
 
             # Detect faces in the image
-            bounding_boxes, points = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+            bounding_boxes, points = detect_face.detect_face(frame, constant.MINSIZE, pnet, rnet, onet, constant.THRESHOLD, constant.FACTOR)
             faces_found = bounding_boxes.shape[0]
             print(f'Number of faces found: {faces_found}')
             print('points:', points)
@@ -99,13 +88,13 @@ def detect_and_mark_landmarks(image_path):
 
         with sess.as_default():
             # Initialize MTCNN networks
-            pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
+            pnet, rnet, onet = detect_face.create_mtcnn(sess, constant.DET_MODEL_DIR)
 
             # Read the image
             frame = cv2.imread(image_path)
 
             # Detect faces in the image
-            bounding_boxes, points = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+            bounding_boxes, points = detect_face.detect_face(frame, constant.MINSIZE, pnet, rnet, onet, constant.THRESHOLD, constant.FACTOR)
             faces_found = bounding_boxes.shape[0]
             # print(f'Number of faces found: {faces_found}')
             # print('points:', points)
@@ -174,7 +163,7 @@ def plot_detected_faces(root_path):
             config=tf.compat.v1.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
 
         with sess.as_default():
-            pnet, rnet, onet = detect_face.create_mtcnn(sess, os.path.join(BASE_DIR, 'src', 'align'))
+            pnet, rnet, onet = detect_face.create_mtcnn(sess, constant.DET_MODEL_DIR)
 
             # Sử dụng ThreadPoolExecutor để xử lý ảnh song song
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -215,7 +204,7 @@ def process_image(img_path, pnet, rnet, onet):
     frame = cv2.imread(img_path)
 
     # Detect faces in the image
-    bounding_boxes, _ = detect_face.detect_face(frame, MINSIZE, pnet, rnet, onet, THRESHOLD, FACTOR)
+    bounding_boxes, _ = detect_face.detect_face(frame, constant.MINSIZE, pnet, rnet, onet, constant.THRESHOLD, constant.FACTOR)
     faces_found = bounding_boxes.shape[0]
 
     if faces_found > 0:

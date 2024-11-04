@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from multiprocessing.process import parent_process
 
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelEncoder
@@ -28,33 +27,31 @@ class ModelService:
 
     def predict_user(self, image: bytes) -> Response:
         pre_process = PreprocessingService()
-        image = pre_process.pre_process_image([image])
+        data_processed = pre_process.pre_process_image([image])[0]
 
-        print('image', len(image))
-        if image is None:
+        embeddings = get_embeddings([data_processed])
+
+        face_found = len(embeddings)
+        if face_found == 0:
             return Response(Response.FACE_NOT_FOUND, "No faces found")
-        return Response(Response.STATUS_CODE_SUCCESS, "Face found")
+        elif face_found > 4:
+            return Response(Response.MULTIPLE_FACES_FOUND, "Multiple faces found")
+        user_ids = classification.predict_model(self, embeddings)
+        if user_ids is None:
+            return Response(Response.USER_NOT_FOUND, "User not found")
 
-        # embeddings = get_embeddings([image])
-        #
-        # face_found = len(embeddings)
-        # if face_found == 0:
-        #     return Response(Response.FACE_NOT_FOUND, "No faces found")
-        # elif face_found > 4:
-        #     return Response(Response.MULTIPLE_FACES_FOUND, "Multiple faces found")
-        # user_ids = classification.predict_model(self, embeddings)
-        # if user_ids is None:
-        #     return Response(Response.USER_NOT_FOUND, "User not found")
-        #
-        # # user_ids = [uid for uid in user_ids if util.is_valid_uuid(uid)]
-        # return Response(
-        #     Response.STATUS_CODE_SUCCESS,
-        #     "User found",
-        #     data=user_ids
-        # )
+        # user_ids = [uid for uid in user_ids if util.is_valid_uuid(uid)]
+        return Response(
+            Response.STATUS_CODE_SUCCESS,
+            "User found",
+            data=user_ids
+        )
 
     def train_classifier(self, user_id: str, images: list[bytes]) -> Response:
-        embeddings = get_embeddings(images)
+        pre_process = PreprocessingService()
+        data_processed = pre_process.pre_process_image(images)
+
+        embeddings = get_embeddings(data_processed)
 
         if len(embeddings) == 0:
             return Response(Response.FACE_NOT_FOUND, "No faces found")
