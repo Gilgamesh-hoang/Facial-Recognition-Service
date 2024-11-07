@@ -14,6 +14,9 @@ GET http://localhost:8111/a
 ### Test for identifying face
 POST http://localhost:8111/identify-face
 Content-Type: application/json
+### Test for identifying face
+POST http://localhost:8111/identify-face2
+Content-Type: application/json
 
 ### Test for uploading images for training
 POST http://localhost:8111/train-image

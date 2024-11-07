@@ -6,13 +6,13 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelEncoder
 import logging
 import src.utils.constant as constant
+from src.services.preprocessing_service import remove_outliers
 
 logger = logging.getLogger(__name__)
 
 def load_model_from_file() -> SGDClassifier | None:
     try:
         if os.path.exists(constant.CLASSIFY_MODEL_PATH):
-            print('Model file found')
             with open(constant.CLASSIFY_MODEL_PATH, 'rb') as file:
                 model = pickle.load(file)
             logger.info('Model loaded successfully')
@@ -37,18 +37,10 @@ def save_model_to_file(model: SGDClassifier):
 
 def create_and_save_face_model() -> SGDClassifier:
     with open(constant.DATASET_EMBEDDINGS_PATH, 'rb') as f:
-        data = pickle.load(f)
+        (emb_array, labels) = pickle.load(f)
 
-    # Chuẩn bị dữ liệu
-    X, y = [], []  # Embeddings và nhãn
-
-    for label, embeddings_list in data.items():
-        for embedding in embeddings_list:
-            X.append(embedding.flatten())
-            y.append(label)
-
-    X = np.array(X, dtype=np.float64)
-    y = np.array(y)
+    X = np.array(emb_array, dtype=np.float64)
+    y = np.array(labels)
 
     # Mã hóa nhãn thành dạng số
     label_encoder = LabelEncoder()
@@ -59,7 +51,7 @@ def create_and_save_face_model() -> SGDClassifier:
     model_classify = SGDClassifier(alpha=0.0001, learning_rate='optimal', loss='log_loss', max_iter=1000, penalty='l2',
                                    random_state=42)
     # Chỉ định các lớp cần phân loại
-    classes = np.arange(800)  # 800 lớp từ 0 đến 799
+    classes = np.arange(1000)  # 1000 lớp
     model_classify.partial_fit(X, y_encoded, classes=classes)
 
     save_label_encode_file(label_encoder)
@@ -76,7 +68,12 @@ async def train_model(service, user_id: str, embeddings: list[np.ndarray]):
     - userId: The user ID as a label for the embeddings.
     - imagesData: List of images (in bytes) to generate embeddings for training.
     """
-    X_new = [embedding.flatten() for embedding in embeddings]  # Flatten embeddings
+    cleaned_embeddings = remove_outliers(embeddings)
+    if cleaned_embeddings is None:
+        logger.error('No embeddings to train')
+        return
+
+    X_new = [embedding.flatten() for embedding in cleaned_embeddings]  # Flatten embeddings
     X_new = np.array(X_new, dtype=np.float64)
     y_new = np.array([user_id] * len(X_new))  # Mảng chứa các nhãn giống nhau
 

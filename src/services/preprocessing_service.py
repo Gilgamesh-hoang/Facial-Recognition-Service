@@ -1,9 +1,8 @@
 import concurrent
 import math
-import pickle
 
 import numpy as np
-
+from sklearn.metrics import pairwise_distances
 import cv2
 import tensorflow as tf
 from src.align.detect_face import detect_face, create_mtcnn
@@ -12,8 +11,9 @@ import src.utils.constant as constant
 
 
 class PreprocessingService:
-    def __init__(self):
+    def __init__(self, face_number_per_img: int = 1):
         self.__pnet, self.__rnet, self.__onet = self.get_mtcnn()
+        self.__face_number_per_img = face_number_per_img
 
     def get_mtcnn(self):
         with tf.Graph().as_default():
@@ -29,8 +29,11 @@ class PreprocessingService:
         # Sử dụng ThreadPoolExecutor để xử lý hình ảnh
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             # Gửi các tác vụ vào thread pool
-            futures = {executor.submit(self.process_image, imageData, 90):
-                           imageData for imageData in images_data}
+            futures = []
+            for image in images_data:
+                frame = cv2.imdecode(image, cv2.IMREAD_COLOR)
+                frame = resize_image(frame, 800, 800)
+                futures.append(executor.submit(self.process_image, frame, 90))
 
             # Chờ cho tất cả các thread hoàn thành và thu thập kết quả
             frames = []
@@ -41,14 +44,12 @@ class PreprocessingService:
 
         return frames
 
-    def process_image(self, image_data: np.ndarray, angle=90) -> list[np.ndarray] | None:
-        image_data = self.resize_image(image_data, 800, 800)
-
-        frame = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
+    def process_image(self, frame: np.ndarray, angle=90) -> list[np.ndarray] | None:
+        # frame = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
         bounding_boxes, points = detect_face(frame, constant.MINSIZE, self.__pnet, self.__rnet, self.__onet,
                                              constant.THRESHOLD, constant.FACTOR)
         faces_found = bounding_boxes.shape[0]
-        if faces_found > 3:
+        if faces_found > self.__face_number_per_img:
             return None
 
         if faces_found > 0:
@@ -64,21 +65,6 @@ class PreprocessingService:
         rotated_image_bytes = cv2.imencode('.jpg', rotated_image)[1].tobytes()
         return self.process_image(np.frombuffer(rotated_image_bytes, np.uint8), angle + 90)
 
-    def resize_image(self, image: np.ndarray, max_width: int, max_height: int)-> np.ndarray:
-        # Bước 1: Lấy kích thước hiện tại của ảnh
-        height, width = image.shape[:2]
-
-        # Bước 2: Kiểm tra nếu ảnh vượt quá kích thước tối đa
-        if width > max_width or height > max_height:
-            # Tính toán tỉ lệ để giữ nguyên tỷ lệ của ảnh khi resize
-            scaling_factor = min(max_width / width, max_height / height)
-            new_width = int(width * scaling_factor)
-            new_height = int(height * scaling_factor)
-            resized_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
-            return resized_image
-        else:
-            return image
-
     def crop_and_resize(self, frame: np.ndarray) -> list[np.ndarray]:
         """
         Detects faces in the frame, crops and resizes each detected face to a specific size.
@@ -90,7 +76,8 @@ class PreprocessingService:
             list[np.ndarray]: A list of cropped and resized face images.
         """
         # Detect faces in the input frame
-        bounding_boxes, _ = detect_face(frame, constant.MINSIZE, self.__pnet, self.__rnet, self.__onet, constant.THRESHOLD,
+        bounding_boxes, _ = detect_face(frame, constant.MINSIZE, self.__pnet, self.__rnet, self.__onet,
+                                        constant.THRESHOLD,
                                         constant.FACTOR)
         num_faces = bounding_boxes.shape[0]
 
@@ -107,7 +94,8 @@ class PreprocessingService:
             cropped_face = frame[y1:y2, x1:x2, :]
 
             # Resize the cropped face
-            resized_face = cv2.resize(cropped_face, (constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
+            resized_face = cv2.resize(cropped_face, (constant.INPUT_IMAGE_SIZE, constant.INPUT_IMAGE_SIZE),
+                                      interpolation=cv2.INTER_CUBIC)
 
             # Append to results list
             cropped_faces.append(resized_face)
@@ -175,3 +163,53 @@ class PreprocessingService:
         rotated_image = cv2.warpAffine(image_np, rotation_matrix, (image_np.shape[1], image_np.shape[0]),
                                        flags=cv2.INTER_LINEAR)
         return rotated_image
+
+
+def resize_image(image: np.ndarray, max_width: int, max_height: int) -> np.ndarray:
+    if image is None or len(image.shape) < 2:
+        raise ValueError("Invalid image provided")
+    # Bước 1: Lấy kích thước hiện tại của ảnh
+    height, width = image.shape[:2]
+
+    # Bước 2: Kiểm tra nếu ảnh vượt quá kích thước tối đa
+    if width > max_width or height > max_height:
+        # Tính toán tỉ lệ để giữ nguyên tỷ lệ của ảnh khi resize
+        scaling_factor = min(max_width / width, max_height / height)
+        new_width = int(width * scaling_factor)
+        new_height = int(height * scaling_factor)
+        resized_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        return resized_image
+    else:
+        return image
+
+
+def remove_outliers(embeddings: list[np.ndarray], threshold=0.4) -> list[np.ndarray] | None:
+    # Calculate Cosine distances between all vectors
+    num_vectors = len(embeddings)
+    distances = pairwise_distances(embeddings, metric='cosine')
+    distances = np.round(distances, 4)
+    rows_without_diagonal = [np.delete(distances[i], i) for i in range(distances.shape[0])]
+    # Danh sách lưu trữ các chỉ số của outliers
+    outliers_indices = []
+
+    for i, row in enumerate(rows_without_diagonal):
+        if np.all(row > threshold):
+            outliers_indices.append(i)
+        elif num_vectors > 3 and np.sum(row < threshold) == 1:
+            # Nếu có nhieu hon 3 vector và chỉ có 1 vector có khoảng cách nhỏ hơn ngưỡng
+            # thì vector đó cũng được coi là outlier
+            outliers_indices.append(i)
+
+    # Xử lý các trường hợp đặc biệt
+    num_outliers = len(outliers_indices)
+    print('outliers_indices: ', outliers_indices)
+
+    if num_outliers == 0:
+        # Không có outlier
+        return embeddings
+    elif num_outliers < num_vectors / 2:
+        # Outlier chiếm phần nhỏ, loại bỏ chúng
+        return [embedding for i, embedding in enumerate(embeddings) if i not in outliers_indices]
+    else:
+        # Có nhiều outlier hoặc mỗi vector là một khuôn mặt khác nhau, trả về danh sách ban đầu
+        return None

@@ -106,12 +106,12 @@ def detect_and_mark_landmarks(image_path):
 
             file_name = os.path.basename(image_path)
             # save the image with landmarks to file with file name
-            cv2.imwrite(f'C:\\Users\\FPT SHOP\\Pictures\\landmarks_{file_name}', frame)
+            # cv2.imwrite(f'C:\\Users\\FPT SHOP\\Pictures\\landmarks_{file_name}', frame)
 
             # Display the image with landmarks
-            # cv2.imshow(f'Image with Landmarks {file_name}', frame)
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
+            cv2.imshow(f'Image with Landmarks {file_name}', frame)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
             # left_eye_x = int(points[0, 0])  # Tọa độ x mắt trái
             # left_eye_y = int(points[5, 0])  # Tọa độ y mắt trái
@@ -298,4 +298,4 @@ def rotate_face_to_align_eyes(image_path, left_eye, right_eye):
 # rotate("C:\\Users\\FPT SHOP\\Pictures\\Saved Pictures\\IMG_20240213_123347.jpg")
 # detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_5.png")
 # detect_and_mark_landmarks("C:\\Users\FPT SHOP\Pictures\Saved Pictures\IMG_3137-01.jpeg")
-detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\resize\\0.408407190993333.jpg")
+detect_and_mark_landmarks("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\IMG_20230126_123256.png")

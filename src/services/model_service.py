@@ -26,17 +26,19 @@ class ModelService:
         classification.save_model_to_file(self.__model)
         classification.save_label_encode_file(self.__label_encoder)
 
-    def predict_user(self, image: np.ndarray) -> Response:
-        pre_process = PreprocessingService()
-        data_processed = pre_process.pre_process_image([image])[0]
+    def predict_user(self, image: bytes) -> Response:
+        image = np.frombuffer(image, np.uint8)
+        pre_process = PreprocessingService(face_number_per_img=4)
+        data_processed = pre_process.pre_process_image([image])
 
-        embeddings = get_embeddings([data_processed])
-
-        face_found = len(embeddings)
+        face_found = len(data_processed)
         if face_found == 0:
             return Response(Response.FACE_NOT_FOUND, "No faces found")
         elif face_found > 4:
             return Response(Response.MULTIPLE_FACES_FOUND, "Multiple faces found")
+
+        embeddings = get_embeddings(data_processed)
+
         user_ids = classification.predict_model(self, embeddings)
         if user_ids is None:
             return Response(Response.USER_NOT_FOUND, "User not found")
@@ -48,14 +50,15 @@ class ModelService:
             data=user_ids
         )
 
-    def train_classifier(self, user_id: str, images: list[np.ndarray]) -> Response:
-        pre_process = PreprocessingService()
+    def train_classifier(self, user_id: str, images: list[bytes]) -> Response:
+        images = [np.frombuffer(img, np.uint8) for img in images]
+        pre_process = PreprocessingService(face_number_per_img=1)
         data_processed = pre_process.pre_process_image(images)
+        if data_processed is None:
+            return Response(Response.FACE_NOT_FOUND, "No faces found")
 
         embeddings = get_embeddings(data_processed)
 
-        if len(embeddings) == 0:
-            return Response(Response.FACE_NOT_FOUND, "No faces found")
         # Khởi tạo một task bất đồng bộ để train model trong nền
         asyncio.create_task(classification.train_model(self, user_id, embeddings))
 
