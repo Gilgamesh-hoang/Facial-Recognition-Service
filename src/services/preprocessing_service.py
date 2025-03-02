@@ -46,6 +46,8 @@ class PreprocessingService:
 
     def process_image(self, frame: np.ndarray, angle=90) -> list[np.ndarray] | None:
         # frame = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
+        if frame is None or len(frame.shape) < 2:
+            return None
         bounding_boxes, points = detect_face(frame, constant.MINSIZE, self.__pnet, self.__rnet, self.__onet,
                                              constant.THRESHOLD, constant.FACTOR)
         faces_found = bounding_boxes.shape[0]

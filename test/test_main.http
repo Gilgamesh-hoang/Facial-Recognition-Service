@@ -1,23 +1,32 @@
 # Test your FastAPI endpoints
 
 ### Test for uploading images for training
-#POST http://localhost:8111/train-image
-#Content-Type: application/json
-#
-#{
-#    "user_id": "user123",
-#    "imageURLs": [
-#        "https://smilemedia.vn/wp-content/uploads/2022/09/cach-chup-hinh-the-dep.jpeg"
-#    ]
-#}
-GET http://localhost:8111/a
+POST http://localhost:8111/train-images
+Content-Type: application/json
+
+{
+  "user_id": "74c061c1-324a-340f-9c5d-5c9480d74854",
+  "imageURLs": [
+    "https://pm1.narvii.com/6377/305a5e5165217c3b232c973a53bd1e057aea6855_hq.jpg",
+    "https://thethaovanhoa.mediacdn.vn/Upload/O5NP4aFt6GVwE7JTFAOaA/files/2022/06/son-tung-mtp-va-hai-tu%20(1).jpg",
+    "https://i.vgt.vn/2023/5/21/chi-pu-duoc-vinh-danh-sau-man-the-hien-cuc-soc-o-ty-ty-dap-gio-re-song-son-tung-mtp-cung-vao-cuoc-152-6910599.png"
+  ]
+}
 ### Test for identifying face
 POST http://localhost:8111/identify-face
 Content-Type: application/json
-### Test for identifying face
-POST http://localhost:8111/identify-face2
-Content-Type: application/json
 
-### Test for uploading images for training
-POST http://localhost:8111/train-image
-Content-Type: application/json
+{
+  "imageURL": "https://res.cloudinary.com/dqjwkvfko/image/upload/v1732606196/snapgram/file_ffcc95f6-c5c3-44ee-8c95-f6c5c354eebf.png"
+}
+
+#### Test for identifying face
+#POST http://localhost:8111/identify-face
+#Content-Type: application/json
+#### Test for identifying face
+#POST http://localhost:8111/identify-face2
+#Content-Type: application/json
+#
+#### Test for uploading images for training
+#POST http://localhost:8111/train-image
+#Content-Type: application/json

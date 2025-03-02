@@ -14,7 +14,7 @@ CLASSIFY_MODEL_PATH = os.path.join(BASE_DIR, 'Models', 'face-model.pkl')
 
 LABEL_ENCODE_PATH = os.path.join(BASE_DIR, 'Models', 'label-encode.pkl')
 
-DATASET_EMBEDDINGS_PATH = os.path.join(BASE_DIR, 'Dataset', 'FaceData', 'embeddings.pkl')
+DATASET_EMBEDDINGS_PATH = os.path.join(BASE_DIR, 'Dataset', 'embeddings.pkl')
 
 MINSIZE = 20  # Minimum size of the face
 

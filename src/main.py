@@ -1,13 +1,16 @@
-import json
 import os
+import time
 from contextlib import asynccontextmanager
+
+# Add the root directory of the project to the Python path
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import cv2
 import numpy as np
 import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
@@ -60,87 +63,58 @@ async def testCORS():
     return {"message": "Hello World"}
 
 
-# @app.post("/identify-face")
-# async def identify_face(request: ImageRequest, service: ModelService = Depends(get_model_service)):
-#     imageURL = request.imageURL
-#
-#     if not imageURL:
-#         raise HTTPException(status_code=400, detail="No image provided")
-#
-#     # Tải ảnh từ URL
-#     try:
-#         response = requests.get(imageURL)
-#         response.raise_for_status()  # Kiểm tra nếu request thất bại
-#         img_data = response.content  # Dữ liệu ảnh ở dạng bytes
-#     except requests.RequestException as e:
-#         raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
-#
-#     # Gọi hàm nhận diện khuôn mặt với dữ liệu bytes của ảnh
-#     response =  service.predict_user(img_data)
-#     return response.to_dict()
 @app.post("/identify-face")
-async def identify_face(service: ModelService = Depends(get_model_service)):
-    img_data = open("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\IMG_20240213_123622.png",
-                    "rb").read()
+async def identify_face(request: ImageRequest, service: ModelService = Depends(get_model_service)):
+    start = time.time()
+    imageURL = request.imageURL
+
+    if not imageURL:
+        raise HTTPException(status_code=400, detail="No image provided")
+
+    # Tải ảnh từ URL
+    try:
+        response = requests.get(imageURL)
+        response.raise_for_status()  # Kiểm tra nếu request thất bại
+        img_data = response.content  # Dữ liệu ảnh ở dạng bytes
+    except requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
+
     # Gọi hàm nhận diện khuôn mặt với dữ liệu bytes của ảnh
-    response = service.predict_user(img_data)
-    return response.to_dict()
+    result =  service.predict_user(img_data)
+    print(f"Time: {time.time() - start} s")
+    print(result.to_dict())
+    return result.to_dict()
 
 
-@app.post("/identify-face2")
-async def identify_face(service: ModelService = Depends(get_model_service)):
-    img_data = open("E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\hc.png", "rb").read()
-    # Gọi hàm nhận diện khuôn mặt với dữ liệu bytes của ảnh
-    response = service.predict_user(img_data)
-    return response.to_dict()
+@app.post("/train-images")
+async def upload_image_for_training(request: ImagesRequest, service: ModelService = Depends(get_model_service)):
+    if not request.user_id:
+        raise HTTPException(status_code=400, detail="No user_id provided")
 
+    imageURLs = request.imageURLs
+    if not imageURLs:
+        raise HTTPException(status_code=400, detail="No images provided")
 
-@app.post("/train-image")
-async def upload_image_for_training2(service: ModelService = Depends(get_model_service)):
     images = []
-    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\rotate\\rotated_30.png',
-              'rb') as file:
-        data = file.read()
-        images.append(data)
+    try:
+        for url in imageURLs:
+            response = requests.get(url)
+            response.raise_for_status()
+            img_data = response.content
 
-    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\processed\\hoang\\IMG_20230123_083911.png',
-              'rb') as file:
-        data = file.read()
-        images.append(data)
+            # Kiểm tra tính toàn vẹn của ảnh bằng OpenCV
+            img_arr = np.frombuffer(img_data, np.uint8)
+            image = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
+            if image is not None:
+                images.append(img_data)
+    except requests.RequestException as e:
+        raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
 
-    # convert image to numpy array
+    if len(images) == 0:
+        raise HTTPException(status_code=400, detail="No valid images provided")
 
-    response = service.train_classifier('phi_hoang', images)
+    response = service.train_classifier(request.user_id, images)
     return response.to_dict()
-
-
-# @app.post("/train-image")
-# async def upload_image_for_training(request: ImagesRequest, service: ModelService = Depends(get_model_service)):
-#     if not request.user_id:
-#         raise HTTPException(status_code=400, detail="No user_id provided")
-#
-#     imageURLs = request.imageURLs
-#     if not imageURLs:
-#         raise HTTPException(status_code=400, detail="No images provided")
-#
-#     images = []
-#     try:
-#         for url in imageURLs:
-#             response = requests.get(url)
-#             response.raise_for_status()
-#             img_data = response.content
-#
-#             # Kiểm tra tính toàn vẹn của ảnh bằng OpenCV
-#             img_arr = np.frombuffer(img_data, np.uint8)
-#             image = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
-#             if image is None:
-#                 raise ValueError("Dữ liệu không phải là một ảnh hợp lệ.")
-#             images.append(img_arr)
-#     except requests.RequestException as e:
-#         raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
-#
-#     response = service.train_classifier(request.user_id, images)
-#     return response.to_dict()
 
 
 if __name__ == "__main__":

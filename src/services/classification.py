@@ -120,4 +120,8 @@ def save_label_encode_file(label_encoder: LabelEncoder):
 
 
 if __name__ == '__main__':
+    lable = load_label_encode_from_file()
+    print(len(lable.classes_))
+
+    model = load_model_from_file()
     pass

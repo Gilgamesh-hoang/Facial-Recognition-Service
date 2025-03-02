@@ -9,7 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 
 # Best parameters SGD found: Best Parameters: {'alpha': 0.0001, 'learning_rate': 'optimal', 'loss': 'log_loss', 'max_iter': 1000, 'penalty': 'l2', 'random_state': 42}
 def grid_search_cv_sgd():
-    with open('E:\\Facial-Recognition-Service\\Dataset\\FaceData\\embeddings.pkl', 'rb') as f:
+    with open('/Dataset/embeddings.pkl', 'rb') as f:
         data = pickle.load(f)
 
     # Step 2: Prepare features (X) and labels (y)

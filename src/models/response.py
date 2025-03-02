@@ -1,6 +1,4 @@
 class Response:
-    # define a static variable with the status code have value 2000, 2001,2002
-
     STATUS_CODE_SUCCESS = 5000
     STATUS_CODE_ERROR = 5001
     FACE_NOT_FOUND = 5002
